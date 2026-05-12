@@ -9,7 +9,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    
+    defaults:
+      run:
+        working-directory: frontend
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -20,10 +23,10 @@ jobs:
           flutter-version: "3.41.9"
 
       - name: Install Dependencies
-        run: cd frontend && flutter pub get
+        run: flutter pub get
 
       - name: Build Flutter Web
-        run: cd frontend && flutter build web --release
+        run: flutter build web --release
 
       - name: Check Build Files
         run: ls -la build/web
@@ -33,10 +36,8 @@ jobs:
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          
-          vercel-args: '--prod'
-          working-directory: ./frontend/build/web
+          working-directory: frontend
+          vercel-args: '--prod --yes'
           github-comment: false
