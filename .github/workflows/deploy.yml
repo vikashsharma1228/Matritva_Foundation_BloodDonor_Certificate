@@ -9,10 +9,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: frontend
-
+    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -39,6 +36,7 @@ jobs:
           
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          
+          vercel-args: '--prod'
           working-directory: ./frontend/build/web
-          vercel-args: '--prod --yes'
           github-comment: false
