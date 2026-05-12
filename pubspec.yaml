@@ -1,0 +1,54 @@
+name: blood_donation_app
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  pdf: ^3.10.4
+  printing: ^5.11.0
+  intl: ^0.18.1
+  google_fonts: ^6.2.1
+  cupertino_icons: ^1.0.8
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/logo.jpg
+    - assets/redcross.png
+    - assets/facebook.png
+    - assets/insta.png
+    - assets/phone.jpg
+    - assets/adarsh_sig.png
+    - assets/vikash_sig.png
+    - assets/fonts/GreatVibes-Regular.ttf
+    - assets/fonts/MaterialIcons-Regular.ttf
+    - assets/fonts/NotoSerif-Regular.ttf
+    - assets/fonts/NotoSerif-Bold.ttf
+    - assets/fonts/NotoSerif-Italic.ttf
+
+  fonts:
+    - family: GreatVibes
+      fonts:
+        - asset: assets/fonts/GreatVibes-Regular.ttf
+    - family: NotoSerif
+      fonts:
+        - asset: assets/fonts/NotoSerif-Regular.ttf
+        - asset: assets/fonts/NotoSerif-Italic.ttf
+        - asset: assets/fonts/NotoSerif-Italic.ttf
+    - family: MaterialIcons
+      fonts:
+        - asset: assets/fonts/MaterialIcons-Regular.ttf
+    
