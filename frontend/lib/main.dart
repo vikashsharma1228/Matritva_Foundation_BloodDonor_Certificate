@@ -766,58 +766,51 @@ class _BloodAppState extends State<BloodApp> {
   }
 
   Future<void> saveAndPrint() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => isLoading = true);
+  if (_formKey.currentState!.validate()) {
+    setState(() => isLoading = true);
 
-      // Variables ko pehle hi nikal lein taaki dot notation ka koi chance na rahe
-      final String donorName = nameCtrl.text;
-      final String currentEmail = emailCtrl.text;
-      final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
-      final String displayDate = DateFormat(
-        'dd-MM-yyyy',
-      ).format(DateTime.now());
+    final String donorName = nameCtrl.text;
+    final String currentEmail = emailCtrl.text;
+    final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
 
-      Map<String, dynamic> donorData = {
-        "fullName": donorName,
-        "fatherName": fatherCtrl.text,
-        "gender": gender,
-        "dob": dobCtrl.text,
-        "email": currentEmail,
-        "mobile": mobileCtrl.text,
-        "bloodGroup": bGroup,
-        "location": locCtrl.text,
-        "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
-        "donationDate": donationDateCtrl.text,
-        "certificateId": uniqueId,
-      };
+    Map<String, dynamic> donorData = {
+      "fullName": donorName,
+      "fatherName": fatherCtrl.text,
+      "gender": gender,
+      "dob": dobCtrl.text,
+      "email": currentEmail,
+      "mobile": mobileCtrl.text,
+      "bloodGroup": bGroup,
+      "location": locCtrl.text,
+      "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
+      "donationDate": donationDateCtrl.text,
+      "certificateId": uniqueId,
+    };
 
-      try {
-        final response = await http.post(
-          Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(donorData),
-        );
-       
+    try {
+      final response = await http.post(
+        Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(donorData),
+      );
 
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          final Uint8List pdfBytes = await generateCertificate(donorData);
-          sendCertificateToBackend(pdfBytes, donorData).catchError((e) => debugPrint(e));
-           setState(() {isLoading = false;
-
-        
-
-         _formKey.currentState!.reset(); // Form validators reset karein
-        nameCtrl.clear();
-        fatherCtrl.clear();
-        emailCtrl.clear();
-        mobileCtrl.clear();
-        dobCtrl.clear();
-        donationDateCtrl.clear();
-        donationCountCtrl.clear();
-        locCtrl.clear();
-        gender = null;
-        bGroup = null;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // --- STEP 1: TURANT UI KO RESET KAREIN (INSTANT FEEL) ---
+        setState(() {
+          isLoading = false;
+          _formKey.currentState!.reset();
+          nameCtrl.clear();
+          fatherCtrl.clear();
+          emailCtrl.clear();
+          mobileCtrl.clear();
+          dobCtrl.clear();
+          donationDateCtrl.clear();
+          donationCountCtrl.clear();
+          locCtrl.clear();
+          gender = null;
+          bGroup = null;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Success! Registration Done. Check Email."),
@@ -825,14 +818,29 @@ class _BloodAppState extends State<BloodApp> {
             duration: Duration(seconds: 3),
           ),
         );
-        }
+
+        // --- STEP 2: PDF AUR EMAIL KA KAAM BACKGROUND MEIN START KAREIN ---
+        // Bina await ke microtask mein daalne se screen block nahi hogi
+        Future.microtask(() async {
+          try {
+            final Uint8List pdfBytes = await generateCertificate(donorData);
+            sendCertificateToBackend(pdfBytes, donorData);
+          } catch (e) {
+            debugPrint("Background process error: $e");
+          }
+        });
+      } else {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${response.statusCode}"), backgroundColor: Colors.red),
+        );
+      }
     } catch (e) {
       setState(() => isLoading = false);
-      print("Error: $e");
+      debugPrint("Error: $e");
     }
   }
 }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
