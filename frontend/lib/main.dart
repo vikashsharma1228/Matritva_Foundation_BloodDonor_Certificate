@@ -766,90 +766,71 @@ class _BloodAppState extends State<BloodApp> {
   }
 
   Future<void> saveAndPrint() async {
-  if (_formKey.currentState!.validate()) {
-    // 1. TURANT Loading chalu karein
-    setState(() => isLoading = true);
+    if (_formKey.currentState!.validate()) {
+      setState(() => isLoading = true);
 
-    final Map<String, dynamic> donorData = {
-      "fullName": nameCtrl.text,
-      "fatherName": fatherCtrl.text,
-      "gender": gender,
-      "dob": dobCtrl.text,
-      "email": emailCtrl.text,
-      "mobile": mobileCtrl.text,
-      "bloodGroup": bGroup,
-      "location": locCtrl.text,
-      "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
-      "donationDate": donationDateCtrl.text,
-      "certificateId": "MF-BD-${DateTime.now().millisecondsSinceEpoch}",
-    };
+      // Variables ko pehle hi nikal lein taaki dot notation ka koi chance na rahe
+      final String donorName = nameCtrl.text;
+      final String currentEmail = emailCtrl.text;
+      final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
+      final String displayDate = DateFormat(
+        'dd-MM-yyyy',
+      ).format(DateTime.now());
 
-    try {
-      // 2. Database mein save karein (Sirf iska wait karein)
-      final response = await http.post(
-        Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(donorData),
-      );
+      Map<String, dynamic> donorData = {
+        "fullName": donorName,
+        "fatherName": fatherCtrl.text,
+        "gender": gender,
+        "dob": dobCtrl.text,
+        "email": currentEmail,
+        "mobile": mobileCtrl.text,
+        "bloodGroup": bGroup,
+        "location": locCtrl.text,
+        "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
+        "donationDate": donationDateCtrl.text,
+        "certificateId": uniqueId,
+      };
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        
-        // --- YE HAI MAGIC STEP: Sabse pehle UI reset karein ---
-        setState(() {
-          isLoading = false; // Loader band
-          _formKey.currentState!.reset();
-          nameCtrl.clear();
-          fatherCtrl.clear();
-          emailCtrl.clear();
-          mobileCtrl.clear();
-          dobCtrl.clear();
-          donationDateCtrl.clear();
-          donationCountCtrl.clear();
-          locCtrl.clear();
-          gender = null;
-          bGroup = null;
+      try {
+        final response = await http.post(
+          Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode(donorData),
+        );
+       
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          setState(() {
+          isLoading = false;
+           _formKey.currentState!.reset(); // Form validators reset karein
+        nameCtrl.clear();
+        fatherCtrl.clear();
+        emailCtrl.clear();
+        mobileCtrl.clear();
+        dobCtrl.clear();
+        donationDateCtrl.clear();
+        donationCountCtrl.clear();
+        locCtrl.clear();
+        gender = null;
+        bGroup = null;
         });
-
-        // Success message turant dikhayein
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Success! Registration Done. Certificate raste mein hai."),
+            content: Text("Success! Registration Done. Check Email."),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
           ),
         );
-
-        // --- STEP 3: PDF aur Email ko bilkul alag (Background) kar dein ---
-        // Isme 'await' nahi hai, toh ye piche chalta rahega
-        _runBackgroundProcess(donorData);
-
-      } else {
-        setState(() => isLoading = false);
-        _showError("Server Error: ${response.statusCode}");
-      }
+          final Uint8List pdfBytes = await generateCertificate(donorData);
+          sendCertificateToBackend(pdfBytes, donorData).catchError((e) => debugPrint(e));
+        }
     } catch (e) {
       setState(() => isLoading = false);
-      _showError("Connection Error: $e");
+      print("Error: $e");
     }
   }
 }
 
-// Ye function background mein kaam karega bina UI ko roke
-void _runBackgroundProcess(Map<String, dynamic> data) async {
-  try {
-    // PDF generate hone mein time lagta hai, isliye ise async rakha hai
-    final Uint8List pdfBytes = await generateCertificate(data);
-    sendCertificateToBackend(pdfBytes, data);
-    debugPrint("Background: Mail sent successfully!");
-  } catch (e) {
-    debugPrint("Background Error: $e");
-  }
-}
-
-void _showError(String msg) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(msg), backgroundColor: Colors.red),
-  );
-}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
