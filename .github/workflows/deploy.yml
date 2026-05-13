@@ -37,5 +37,5 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           # Deployment ke liye ye path use hoga (bina kisi extra space ke)
           working-directory: ./frontend/build/web
-          vercel-args: '--prod --yes'
+          vercel-args: '--prod --yes --no-wait'
           github-comment: false
