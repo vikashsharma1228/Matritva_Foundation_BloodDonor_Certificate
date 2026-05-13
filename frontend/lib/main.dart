@@ -767,27 +767,25 @@ class _BloodAppState extends State<BloodApp> {
 
   Future<void> saveAndPrint() async {
   if (_formKey.currentState!.validate()) {
+    // 1. TURANT Loading chalu karein
     setState(() => isLoading = true);
 
-    final String donorName = nameCtrl.text;
-    final String currentEmail = emailCtrl.text;
-    final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
-
-    Map<String, dynamic> donorData = {
-      "fullName": donorName,
+    final Map<String, dynamic> donorData = {
+      "fullName": nameCtrl.text,
       "fatherName": fatherCtrl.text,
       "gender": gender,
       "dob": dobCtrl.text,
-      "email": currentEmail,
+      "email": emailCtrl.text,
       "mobile": mobileCtrl.text,
       "bloodGroup": bGroup,
       "location": locCtrl.text,
       "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
       "donationDate": donationDateCtrl.text,
-      "certificateId": uniqueId,
+      "certificateId": "MF-BD-${DateTime.now().millisecondsSinceEpoch}",
     };
 
     try {
+      // 2. Database mein save karein (Sirf iska wait karein)
       final response = await http.post(
         Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
         headers: {"Content-Type": "application/json"},
@@ -795,9 +793,10 @@ class _BloodAppState extends State<BloodApp> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // --- STEP 1: TURANT UI KO RESET KAREIN (INSTANT FEEL) ---
+        
+        // --- YE HAI MAGIC STEP: Sabse pehle UI reset karein ---
         setState(() {
-          isLoading = false;
+          isLoading = false; // Loader band
           _formKey.currentState!.reset();
           nameCtrl.clear();
           fatherCtrl.clear();
@@ -811,35 +810,45 @@ class _BloodAppState extends State<BloodApp> {
           bGroup = null;
         });
 
+        // Success message turant dikhayein
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Success! Registration Done. Check Email."),
+            content: Text("Success! Registration Done. Certificate raste mein hai."),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
           ),
         );
 
-        // --- STEP 2: PDF AUR EMAIL KA KAAM BACKGROUND MEIN START KAREIN ---
-        // Bina await ke microtask mein daalne se screen block nahi hogi
-        Future.microtask(() async {
-          try {
-            final Uint8List pdfBytes = await generateCertificate(donorData);
-            sendCertificateToBackend(pdfBytes, donorData);
-          } catch (e) {
-            debugPrint("Background process error: $e");
-          }
-        });
+        // --- STEP 3: PDF aur Email ko bilkul alag (Background) kar dein ---
+        // Isme 'await' nahi hai, toh ye piche chalta rahega
+        _runBackgroundProcess(donorData);
+
       } else {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${response.statusCode}"), backgroundColor: Colors.red),
-        );
+        _showError("Server Error: ${response.statusCode}");
       }
     } catch (e) {
       setState(() => isLoading = false);
-      debugPrint("Error: $e");
+      _showError("Connection Error: $e");
     }
   }
+}
+
+// Ye function background mein kaam karega bina UI ko roke
+void _runBackgroundProcess(Map<String, dynamic> data) async {
+  try {
+    // PDF generate hone mein time lagta hai, isliye ise async rakha hai
+    final Uint8List pdfBytes = await generateCertificate(data);
+    sendCertificateToBackend(pdfBytes, data);
+    debugPrint("Background: Mail sent successfully!");
+  } catch (e) {
+    debugPrint("Background Error: $e");
+  }
+}
+
+void _showError(String msg) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(msg), backgroundColor: Colors.red),
+  );
 }
   @override
   Widget build(BuildContext context) {
