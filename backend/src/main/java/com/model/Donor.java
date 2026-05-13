@@ -3,9 +3,8 @@ package com.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.Data;
-import lombok.NoArgsConstructor;  // <--- Yeh line add karein
+import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-
 
 @Data 
 @NoArgsConstructor
@@ -13,7 +12,7 @@ import lombok.AllArgsConstructor;
 @Document(collection = "donors")
 public class Donor {
     @Id
-private String id;
+    private String id;
     private String fullName;
     private String fatherName;
     private String gender;
