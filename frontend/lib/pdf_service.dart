@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 // Update: Ab ye Donor object ya saare fields lega
 Future<void> sendCertificateToBackend(Uint8List pdfBytes, var donor) async {
-  var url = Uri.parse('http://localhost:8080/api/donors/send-certificate');
+  var url = Uri.parse('https://matritva-backend.onrender.com/api/donors/send-certificate');
 
   try {
     var request = http.MultipartRequest('POST', url);

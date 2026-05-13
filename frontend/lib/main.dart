@@ -795,7 +795,7 @@ class _BloodAppState extends State<BloodApp> {
 
       try {
         final response = await http.post(
-          Uri.parse('http://localhost:8080/api/donors/register'),
+          Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(donorData),
         );

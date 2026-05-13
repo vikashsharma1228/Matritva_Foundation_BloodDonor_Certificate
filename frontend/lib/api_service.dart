@@ -5,7 +5,7 @@ import 'dart:developer' as dev;
 class ApiService {
   // Agar Android Emulator use kar rahe ho toh '10.0.2.2' use karo
   // Agar Real Device/Web hai toh apne Laptop ka IP address
-  static const String baseUrl = "http://localhost:8080/api/donors";
+  static const String baseUrl = "https://matritva-backend.onrender.com/api/donors/register";
 
   static Future<bool> registerDonor(Map<String, dynamic> data) async {
     try {
