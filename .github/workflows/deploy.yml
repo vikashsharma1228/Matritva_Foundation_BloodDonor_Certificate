@@ -16,16 +16,15 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          chanel: 'stable'
+          channel: 'stable' # Fixed spelling from 'chanel'
 
       - name: Install Dependencies
-        # pubspec.yaml 'frontend' folder mein hai
         run: flutter pub get
         working-directory: frontend
 
       - name: Build Flutter Web
-        # Build command 'frontend' folder se chalegi
-        run: flutter build web --release
+        # Base href explicitly set kiya gaya hai
+        run: flutter build web --release --base-href "/"
         working-directory: frontend
 
       - name: Deploy to Vercel
@@ -35,7 +34,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          # Deployment ke liye ye path use hoga (bina kisi extra space ke)
           working-directory: ./frontend/build/web
-          vercel-args: '--prod --yes --no-wait'
+          vercel-args: '--prod --yes'
           github-comment: false
