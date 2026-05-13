@@ -766,96 +766,72 @@ class _BloodAppState extends State<BloodApp> {
   }
 
   Future<void> saveAndPrint() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => isLoading = true);
+  if (_formKey.currentState!.validate()) {
+    setState(() => isLoading = true);
 
-      // Variables ko pehle hi nikal lein taaki dot notation ka koi chance na rahe
-      final String donorName = nameCtrl.text;
-      final String currentEmail = emailCtrl.text;
-      final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
-      final String displayDate = DateFormat(
-        'dd-MM-yyyy',
-      ).format(DateTime.now());
+    // 1. Data Prepare karein
+    final String donorName = nameCtrl.text;
+    final String currentEmail = emailCtrl.text;
+    final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
+    final String displayDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
 
-      Map<String, dynamic> donorData = {
-        "fullName": donorName,
-        "fatherName": fatherCtrl.text,
-        "gender": gender,
-        "dob": dobCtrl.text,
-        "email": currentEmail,
-        "mobile": mobileCtrl.text,
-        "bloodGroup": bGroup,
-        "location": locCtrl.text,
-        "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
-        "donationDate": donationDateCtrl.text,
-        "certificateId": uniqueId,
-      };
+    Map<String, dynamic> donorData = {
+      "fullName": donorName,
+      "fatherName": fatherCtrl.text,
+      "gender": gender,
+      "dob": dobCtrl.text,
+      "email": currentEmail,
+      "mobile": mobileCtrl.text,
+      "bloodGroup": bGroup,
+      "location": locCtrl.text,
+      "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
+      "donationDate": donationDateCtrl.text,
+      "certificateId": uniqueId,
+      "date": displayDate, 
+    };
 
-      try {
-        final response = await http.post(
-          Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(donorData),
-        );
+    try {
+      // 2. Database mein Save karein
+      final response = await http.post(
+        Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(donorData),
+      );
 
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          debugPrint("Data Saved");
-           // Data update karein PDF ke liye
-          donorData['date'] = displayDate;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // 3. PDF Bytes generate karein
+        final Uint8List pdfBytes = await generateCertificate(donorData);
 
-         _formKey.currentState!.reset(); // Form validators reset karein
+        // 4. Backend ko Mail bhejney ka trigger (Bina Print Window ke)
+        sendCertificateToBackend(pdfBytes, donorData).catchError((e) {
+          debugPrint("Mail Error: $e");
+        });
+
+        // 5. Form Reset karein
+        _formKey.currentState!.reset();
         nameCtrl.clear();
-        fatherCtrl.clear();
         emailCtrl.clear();
-        mobileCtrl.clear();
-        dobCtrl.clear();
-        donationDateCtrl.clear();
-        donationCountCtrl.clear();
-        locCtrl.clear();
-        gender = null;
-        bGroup = null;
+        // ... (baki saare controllers clear karein)
+
+        if (!mounted) return;
         
-        setState(() => isLoading = false);
-         
-          // STEP 3: Certificate Bytes lijiye
-          
-          final Uint8List pdfBytes = await generateCertificate(donorData);
-
-          // STEP 4: Print Layout (Simple name use karein variable avoid karne ke liye)
-          await Printing.layoutPdf(
-            onLayout: (format) => pdfBytes,
-            name:
-                'Certificate_$donorName.pdf', // Direct variable use karein, map nahi
-          );
-
-          // STEP 5: Backend Mail
-          try {
-            await sendCertificateToBackend(pdfBytes, donorData);
-          } catch (mailError) {
-            debugPrint("Mail sending failed: $mailError");
-          }
-
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Success! Saved and Printed."),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          throw Exception("Server returned ${response.statusCode}");
-        }
-      } catch (e) {
-        debugPrint("Catch Error: $e");
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
-      } finally {
-        setState(() => isLoading = false);
+        // 6. Donor ko Success Message dikhayein
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Success! Certificate has been sent to your Email."),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Yahan Printing.layoutPdf() wali line nahi hai, isliye print nahi khulega.
       }
+    } catch (e) {
+      debugPrint("Error: $e");
+    } finally {
+      setState(() => isLoading = false);
     }
   }
-
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
