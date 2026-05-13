@@ -235,7 +235,7 @@ class _BloodAppState extends State<BloodApp> {
                                 style: pw.TextStyle(
                                   fontSize: 51,
                                   fontWeight: pw.FontWeight.bold,
-                                  
+
                                   color: PdfColor.fromHex('800000'),
                                   font: baseFont,
                                 ),
@@ -767,15 +767,12 @@ class _BloodAppState extends State<BloodApp> {
 
   Future<void> saveAndPrint() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => isLoading = true);
+      setState(() => isLoading = true); // Loader chalu
 
-      // Variables ko pehle hi nikal lein taaki dot notation ka koi chance na rahe
+      // 1. Data Map Taiyar karein
       final String donorName = nameCtrl.text;
       final String currentEmail = emailCtrl.text;
       final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
-      final String displayDate = DateFormat(
-        'dd-MM-yyyy',
-      ).format(DateTime.now());
 
       Map<String, dynamic> donorData = {
         "fullName": donorName,
@@ -792,44 +789,77 @@ class _BloodAppState extends State<BloodApp> {
       };
 
       try {
+        // 2. Database mein Save karein (Sirf iska wait karein)
         final response = await http.post(
-          Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
+          Uri.parse(
+            'https://matritva-backend.onrender.com/api/donors/register',
+          ),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(donorData),
         );
-       
 
         if (response.statusCode == 200 || response.statusCode == 201) {
+          // --- STEP 3: TURANT UI RESET KAREIN (INSTANT FEEDBACK) ---
           setState(() {
-          isLoading = false;
-           _formKey.currentState!.reset(); // Form validators reset karein
-        nameCtrl.clear();
-        fatherCtrl.clear();
-        emailCtrl.clear();
-        mobileCtrl.clear();
-        dobCtrl.clear();
-        donationDateCtrl.clear();
-        donationCountCtrl.clear();
-        locCtrl.clear();
-        gender = null;
-        bGroup = null;
-        });
+            isLoading = false;
+            _formKey.currentState!.reset();
+            nameCtrl.clear();
+            fatherCtrl.clear();
+            emailCtrl.clear();
+            mobileCtrl.clear();
+            dobCtrl.clear();
+            donationDateCtrl.clear();
+            donationCountCtrl.clear();
+            locCtrl.clear();
+            gender = null;
+            bGroup = null;
+          });
+
+          // Success SnackBar turant dikhayein
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Registration Successful. Certificate sent to Email.",
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // --- STEP 4: PDF AUR EMAIL KA KAAM BACKGROUND MEIN DAALEIN ---
+          // Future.delayed(Duration.zero) se ye UI ko block nahi karega
+          Future.delayed(Duration.zero, () async {
+            try {
+              final Uint8List pdfBytes = await generateCertificate(donorData);
+              await sendCertificateToBackend(pdfBytes, donorData);
+              debugPrint("Background process completed for $donorName");
+            } catch (e) {
+              debugPrint("Silent Background Error: $e");
+            }
+          });
+        } else {
+          // Server error handle karein
+          setState(() => isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Server Error: ${response.statusCode}"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        // Network error handle karein
+        setState(() => isLoading = false);
+        debugPrint("Connection Error: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Success! Registration Done. Check Email."),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            content: Text("Connection Failed! Please check internet."),
+            backgroundColor: Colors.red,
           ),
         );
-          final Uint8List pdfBytes = await generateCertificate(donorData);
-          sendCertificateToBackend(pdfBytes, donorData).catchError((e) => debugPrint(e));
-        }
-    } catch (e) {
-      setState(() => isLoading = false);
-      print("Error: $e");
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
