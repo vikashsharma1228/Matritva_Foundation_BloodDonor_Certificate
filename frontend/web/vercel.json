@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "public": true,
-  "buildCommand": null,
-  "installCommand": null,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
