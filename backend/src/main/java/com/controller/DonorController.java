@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-@CrossOrigin(origins = "https://web-bay-omega-80.vercel.app") // Aapka Vercel URL
+@CrossOrigin(origins = "https://matritvabloodregister.vercel.app") // Aapka Vercel URL
 @RestController
 @RequestMapping("/api/donors")
 public class DonorController {
