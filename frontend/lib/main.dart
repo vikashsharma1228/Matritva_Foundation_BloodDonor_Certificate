@@ -797,18 +797,14 @@ class _BloodAppState extends State<BloodApp> {
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(donorData),
         );
+       
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           final Uint8List pdfBytes = await generateCertificate(donorData);
-          sendCertificateToBackend(pdfBytes, donorData).catchError((e) => print(e));
-          
-          setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Success! Registration Done. Check Email."),
-            backgroundColor: Colors.green,
-          ),
-        );
+          sendCertificateToBackend(pdfBytes, donorData).catchError((e) => debugPrint(e));
+           setState(() {isLoading = false;
+
+        
 
          _formKey.currentState!.reset(); // Form validators reset karein
         nameCtrl.clear();
@@ -821,6 +817,13 @@ class _BloodAppState extends State<BloodApp> {
         locCtrl.clear();
         gender = null;
         bGroup = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Success! Registration Done. Check Email."),
+            backgroundColor: Colors.green,
+          ),
+        );
         }
     } catch (e) {
       setState(() => isLoading = false);
