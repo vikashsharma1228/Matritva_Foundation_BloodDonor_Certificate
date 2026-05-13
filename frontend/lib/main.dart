@@ -822,6 +822,7 @@ class _BloodAppState extends State<BloodApp> {
           const SnackBar(
             content: Text("Success! Registration Done. Check Email."),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
           ),
         );
         }
