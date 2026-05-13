@@ -787,9 +787,7 @@ class _BloodAppState extends State<BloodApp> {
         "bloodGroup": bGroup,
         "location": locCtrl.text,
         "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
-        "donationDate": donationDateCtrl.text.isEmpty
-            ? DateFormat('yyyy-MM-dd').format(DateTime.now())
-            : donationDateCtrl.text,
+        "donationDate": donationDateCtrl.text,
         "certificateId": uniqueId,
       };
 

@@ -6,6 +6,8 @@ import lombok.Data;
 
 
 @Data 
+@NoArgsConstructor
+@AllArgsConstructor
 @Document(collection = "donors")
 public class Donor {
     @Id

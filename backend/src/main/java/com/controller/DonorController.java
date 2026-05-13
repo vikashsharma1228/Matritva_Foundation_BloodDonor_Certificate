@@ -9,10 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
-
+@CrossOrigin(origins = "https://web-bay-omega-80.vercel.app")
 @RestController
 @RequestMapping("/api/donors")
-@CrossOrigin(origins = "*")
 public class DonorController {
 
     @Autowired
