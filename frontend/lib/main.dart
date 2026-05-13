@@ -800,11 +800,25 @@ class _BloodAppState extends State<BloodApp> {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           debugPrint("Data Saved");
-
-          // Data update karein PDF ke liye
+           // Data update karein PDF ke liye
           donorData['date'] = displayDate;
 
+         _formKey.currentState!.reset(); // Form validators reset karein
+        nameCtrl.clear();
+        fatherCtrl.clear();
+        emailCtrl.clear();
+        mobileCtrl.clear();
+        dobCtrl.clear();
+        donationDateCtrl.clear();
+        donationCountCtrl.clear();
+        locCtrl.clear();
+        gender = null;
+        bGroup = null;
+        
+        setState(() => isLoading = false);
+         
           // STEP 3: Certificate Bytes lijiye
+          
           final Uint8List pdfBytes = await generateCertificate(donorData);
 
           // STEP 4: Print Layout (Simple name use karein variable avoid karne ke liye)
