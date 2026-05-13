@@ -766,101 +766,64 @@ class _BloodAppState extends State<BloodApp> {
   }
 
   Future<void> saveAndPrint() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => isLoading = true); // Loader chalu
+  if (_formKey.currentState!.validate()) {
+    // 1. Loader aur Donor Data taiyar karein
+    setState(() => isLoading = true);
 
-      // 1. Data Map Taiyar karein
-      final String donorName = nameCtrl.text;
-      final String currentEmail = emailCtrl.text;
-      final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
+    final Map<String, dynamic> donorData = {
+      "fullName": nameCtrl.text,
+      "fatherName": fatherCtrl.text,
+      "gender": gender,
+      "dob": dobCtrl.text,
+      "email": emailCtrl.text,
+      "mobile": mobileCtrl.text,
+      "bloodGroup": bGroup,
+      "location": locCtrl.text,
+      "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
+      "donationDate": donationDateCtrl.text,
+      "certificateId": "MF-BD-${DateTime.now().millisecondsSinceEpoch}",
+    };
 
-      Map<String, dynamic> donorData = {
-        "fullName": donorName,
-        "fatherName": fatherCtrl.text,
-        "gender": gender,
-        "dob": dobCtrl.text,
-        "email": currentEmail,
-        "mobile": mobileCtrl.text,
-        "bloodGroup": bGroup,
-        "location": locCtrl.text,
-        "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
-        "donationDate": donationDateCtrl.text,
-        "certificateId": uniqueId,
-      };
+    // --- MAGIC STEP: Bina await ke seedha background process chalu karein ---
+    _handleDoubleBackgroundProcess(donorData);
 
-      try {
-        // 2. Database mein Save karein (Sirf iska wait karein)
-        final response = await http.post(
-          Uri.parse(
-            'https://matritva-backend.onrender.com/api/donors/register',
-          ),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(donorData),
-        );
+    // --- STEP 2: TURANT UI RESET (Bina backend response ka intezar kiye) ---
+    setState(() {
+      isLoading = false; // Loader turant band
+      _formKey.currentState!.reset();
+      _clearAllControllers(); // Apne saare clear() calls yahan daal dein
+    });
 
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          // --- STEP 3: TURANT UI RESET KAREIN (INSTANT FEEDBACK) ---
-          setState(() {
-            isLoading = false;
-            _formKey.currentState!.reset();
-            nameCtrl.clear();
-            fatherCtrl.clear();
-            emailCtrl.clear();
-            mobileCtrl.clear();
-            dobCtrl.clear();
-            donationDateCtrl.clear();
-            donationCountCtrl.clear();
-            locCtrl.clear();
-            gender = null;
-            bGroup = null;
-          });
-
-          // Success SnackBar turant dikhayein
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Registration Successful. Certificate sent to Email.",
-              ),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-
-          // --- STEP 4: PDF AUR EMAIL KA KAAM BACKGROUND MEIN DAALEIN ---
-          // Future.delayed(Duration.zero) se ye UI ko block nahi karega
-          Future.delayed(Duration.zero, () async {
-            try {
-              final Uint8List pdfBytes = await generateCertificate(donorData);
-              await sendCertificateToBackend(pdfBytes, donorData);
-              debugPrint("Background process completed for $donorName");
-            } catch (e) {
-              debugPrint("Silent Background Error: $e");
-            }
-          });
-        } else {
-          // Server error handle karein
-          setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Server Error: ${response.statusCode}"),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } catch (e) {
-        // Network error handle karein
-        setState(() => isLoading = false);
-        debugPrint("Connection Error: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Connection Failed! Please check internet."),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Processing Registration... Check Email in a moment."),
+        backgroundColor: Colors.blueAccent,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
+}
 
+// Ye function backend call aur email dono background mein karega
+void _handleDoubleBackgroundProcess(Map<String, dynamic> data) async {
+  try {
+    // 1. Database mein save karein (Peechhe se)
+    final response = await http.post(
+      Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      // 2. Agar save ho gaya, toh PDF generate karke mail bhejein
+      final Uint8List pdfBytes = await generateCertificate(data);
+      await sendCertificateToBackend(pdfBytes, data);
+      debugPrint("Background: Success for ${data['fullName']}");
+    }
+  } catch (e) {
+    debugPrint("Silent Error: $e");
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
