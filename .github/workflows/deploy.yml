@@ -35,5 +35,5 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./frontend/build/web
-          vercel-args: '--prod --yes'
+          vercel-args: '--prod --yes --no-wait'
           github-comment: false
