@@ -1,7 +1,7 @@
-D:\Blood Donor project\blood_donation_app\src\main\java\com\service\ReminderService.java
-D:\Blood Donor project\blood_donation_app\src\main\java\com\model\Donor.java
-D:\Blood Donor project\blood_donation_app\src\main\java\com\service\EmailService.java
-D:\Blood Donor project\blood_donation_app\src\main\java\com\repository\DonorRepository.java
-D:\Blood Donor project\blood_donation_app\src\main\java\com\controller\DonorController.java
-D:\Blood Donor project\blood_donation_app\src\main\java\com\MatritvaApplication.java
-D:\Blood Donor project\blood_donation_app\src\main\java\com\service\NotificationService.java
+D:\Blood Donor project\blood_donation_app\backend\src\main\java\com\service\ReminderService.java
+D:\Blood Donor project\blood_donation_app\backend\src\main\java\com\repository\DonorRepository.java
+D:\Blood Donor project\blood_donation_app\backend\src\main\java\com\MatritvaApplication.java
+D:\Blood Donor project\blood_donation_app\backend\src\main\java\com\service\NotificationService.java
+D:\Blood Donor project\blood_donation_app\backend\src\main\java\com\service\EmailService.java
+D:\Blood Donor project\blood_donation_app\backend\src\main\java\com\controller\DonorController.java
+D:\Blood Donor project\blood_donation_app\backend\src\main\java\com\model\Donor.java

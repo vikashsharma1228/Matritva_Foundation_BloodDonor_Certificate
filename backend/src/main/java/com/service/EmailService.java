@@ -1,24 +1,39 @@
 package com.service;
 
-import jakarta.mail.MessagingException;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.gmail.Gmail;
+import com.google.api.services.gmail.model.Message;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.UserCredentials;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import java.io.UnsupportedEncodingException;
+
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
+import java.util.Properties;
 
 @Service
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    @Value("${GOOGLE_CLIENT_ID}")
+    private String clientId;
+
+    @Value("${GOOGLE_CLIENT_SECRET}")
+    private String clientSecret;
+
+    @Value("${GOOGLE_REFRESH_TOKEN}")
+    private String refreshToken;
 
     @Async
     public void sendEmailWithAttachment(String toEmail, String donorName, byte[] pdfContent,
-            String location, String donationDate, int donationCount) {
+                                       String location, String donationDate, int donationCount) {
         
         if (toEmail == null || pdfContent == null) {
             System.err.println("Email Error: toEmail or pdfContent is null!");
@@ -26,13 +41,30 @@ public class EmailService {
         }
 
         try {
-            // Log for debugging on Render
-            System.out.println("Starting Email Process for: " + toEmail);
+            System.out.println("Starting OAuth2 Email Process for: " + toEmail);
 
-            MimeMessage message = mailSender.createMimeMessage();
+            // 1. Setup OAuth2 Credentials
+            UserCredentials credentials = UserCredentials.newBuilder()
+                    .setClientId(clientId)
+                    .setClientSecret(clientSecret)
+                    .setRefreshToken(refreshToken)
+                    .build();
+
+            // 2. Initialize Gmail Service
+            Gmail service = new Gmail.Builder(
+                    GoogleNetHttpTransport.newTrustedTransport(),
+                    GsonFactory.getDefaultInstance(),
+                    new HttpCredentialsAdapter(credentials))
+                    .setApplicationName("MatritvaFoundation")
+                    .build();
+
+            // 3. Create MimeMessage (Aapka original Template logic)
+            Properties props = new Properties();
+            Session session = Session.getDefaultInstance(props, null);
+            MimeMessage message = new MimeMessage(session);
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom("matritvafoundation@gmail.com", "Matritva Foundation");
+            helper.setFrom(new InternetAddress("matritvafoundation@gmail.com", "Matritva Foundation"));
             helper.setTo(toEmail);
 
             String subject = donorName + " - Blood Donation Appreciation Certificate 🏅 ";
@@ -41,7 +73,7 @@ public class EmailService {
             String whatsappLink = "https://chat.whatsapp.com/EVcBragy2687Iku5kwovYe";
             String instaLink = "https://www.instagram.com/matritva_foundation/";
 
-            // Aapka Original Stunning HTML Template (No Changes Made)
+            // Aapka Stunning HTML Template (Keep as is)
             String htmlBody = "<div style='font-family: \"Segoe UI\", Tahoma, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: auto; border: 1px solid #f0f0f0; border-radius: 15px; overflow: hidden;'>"
                     + "<div style='background-color: #800000; padding: 25px; text-align: center;'>"
                     + "<h1 style='color: #ffffff; margin: 0; font-size: 26px; letter-spacing: 1px;'>MATRITVA FOUNDATION</h1>"
@@ -77,22 +109,26 @@ public class EmailService {
 
             helper.setText(htmlBody, true);
 
-            // Dynamic File Name logic
+            // Attachment Logic (Keep as is)
             String fileName = "Certificate_" + donorName.replace(" ", "_") + ".pdf";
             helper.addAttachment(fileName, new ByteArrayResource(pdfContent));
 
-            // Connection Log
-            System.out.println("Connection Check: Attempting delivery to " + toEmail + " via SMTP 587");
-            
-            mailSender.send(message);
-            
-            // Success Log
-            System.out.println("SUCCESS: Mail sent to donor: " + donorName + " (Count: " + donationCount + ")");
+            // 4. Encode and Send via Gmail API (The Magic Part)
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            message.writeTo(buffer);
+            byte[] rawMessageBytes = buffer.toByteArray();
+            String encodedEmail = Base64.getUrlEncoder().encodeToString(rawMessageBytes);
+
+            Message gmailMessage = new Message();
+            gmailMessage.setRaw(encodedEmail);
+
+            service.users().messages().send("me", gmailMessage).execute();
+
+            System.out.println("SUCCESS: Mail sent via OAuth2 to donor: " + donorName);
 
         } catch (Exception e) {
-            // Detailed Error for Render Logs
-            System.err.println("FATAL MAIL ERROR for " + donorName + ": " + e.getMessage());
-            e.printStackTrace(); 
+            System.err.println("FATAL OAUTH2 MAIL ERROR for " + donorName + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

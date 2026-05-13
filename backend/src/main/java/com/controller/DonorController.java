@@ -8,7 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@CrossOrigin(origins = "https://web-bay-omega-80.vercel.app")
+import java.util.List;
+
+@CrossOrigin(origins = "https://web-bay-omega-80.vercel.app") // Aapka Vercel URL
 @RestController
 @RequestMapping("/api/donors")
 public class DonorController {
@@ -19,6 +21,7 @@ public class DonorController {
     @Autowired
     private EmailService emailService;
 
+    // 1. New Donor Registration
     @PostMapping("/register")
     public ResponseEntity<Donor> registerDonor(@RequestBody Donor donor) {
         if (donor == null) {
@@ -28,6 +31,13 @@ public class DonorController {
         return ResponseEntity.ok(savedDonor);
     }
 
+    // 2. Fetch All Donors (Optional: For Dashboard)
+    @GetMapping("/all")
+    public List<Donor> getAllDonors() {
+        return repository.findAll();
+    }
+
+    // 3. Send Certificate via Gmail API (OAuth2)
     @PostMapping("/send-certificate")
     public ResponseEntity<?> sendMail(
             @RequestParam("file") MultipartFile file,
@@ -38,20 +48,32 @@ public class DonorController {
             @RequestParam("donationCount") int donationCount
     ) {
         try {
-            // PDF bytes ko thread ke bahar nikalna zaroori hai
+            // Log for Render Debugging
+            System.out.println("Received request to send certificate to: " + email);
+
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Error: PDF file is missing!");
+            }
+
+            // PDF bytes ko multipart file se extract karna zaroori hai 
+            // taaki async thread safe rahe
             final byte[] pdfBytes = file.getBytes();
 
-            // Background thread mein mail bhejna taaki Render timeout na kare
-            new Thread(() -> {
-                try {
-                    emailService.sendEmailWithAttachment(email, name, pdfBytes, location, donationDate, donationCount);
-                } catch (Exception e) {
-                    System.err.println("Async Mail Error for " + name + ": " + e.getMessage());
-                }
-            }).start();
+            // Email Service call (Kyuki service mein @Async laga hai, 
+            // ye background mein chalega bina manual thread banaye)
+            emailService.sendEmailWithAttachment(
+                email, 
+                name, 
+                pdfBytes, 
+                location, 
+                donationDate, 
+                donationCount
+            );
 
-            return ResponseEntity.ok("Success: Mail processing started!");
+            return ResponseEntity.ok("Success: Mail processing started in background!");
+
         } catch (Exception e) {
+            System.err.println("Controller Error: " + e.getMessage());
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
