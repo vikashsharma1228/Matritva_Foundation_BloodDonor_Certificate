@@ -766,72 +766,69 @@ class _BloodAppState extends State<BloodApp> {
   }
 
   Future<void> saveAndPrint() async {
-  if (_formKey.currentState!.validate()) {
-    setState(() => isLoading = true);
+    if (_formKey.currentState!.validate()) {
+      setState(() => isLoading = true);
 
-    // 1. Data Prepare karein
-    final String donorName = nameCtrl.text;
-    final String currentEmail = emailCtrl.text;
-    final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
-    final String displayDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+      // Variables ko pehle hi nikal lein taaki dot notation ka koi chance na rahe
+      final String donorName = nameCtrl.text;
+      final String currentEmail = emailCtrl.text;
+      final String uniqueId = "MF-BD-${DateTime.now().millisecondsSinceEpoch}";
+      final String displayDate = DateFormat(
+        'dd-MM-yyyy',
+      ).format(DateTime.now());
 
-    Map<String, dynamic> donorData = {
-      "fullName": donorName,
-      "fatherName": fatherCtrl.text,
-      "gender": gender,
-      "dob": dobCtrl.text,
-      "email": currentEmail,
-      "mobile": mobileCtrl.text,
-      "bloodGroup": bGroup,
-      "location": locCtrl.text,
-      "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
-      "donationDate": donationDateCtrl.text,
-      "certificateId": uniqueId,
-      "date": displayDate, 
-    };
+      Map<String, dynamic> donorData = {
+        "fullName": donorName,
+        "fatherName": fatherCtrl.text,
+        "gender": gender,
+        "dob": dobCtrl.text,
+        "email": currentEmail,
+        "mobile": mobileCtrl.text,
+        "bloodGroup": bGroup,
+        "location": locCtrl.text,
+        "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
+        "donationDate": donationDateCtrl.text,
+        "certificateId": uniqueId,
+      };
 
-    try {
-      // 2. Database mein Save karein
-      final response = await http.post(
-        Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(donorData),
-      );
+      try {
+        final response = await http.post(
+          Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode(donorData),
+        );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // 3. PDF Bytes generate karein
-        final Uint8List pdfBytes = await generateCertificate(donorData);
-
-        // 4. Backend ko Mail bhejney ka trigger (Bina Print Window ke)
-        sendCertificateToBackend(pdfBytes, donorData).catchError((e) {
-          debugPrint("Mail Error: $e");
-        });
-
-        // 5. Form Reset karein
-        _formKey.currentState!.reset();
-        nameCtrl.clear();
-        emailCtrl.clear();
-        // ... (baki saare controllers clear karein)
-
-        if (!mounted) return;
-        
-        // 6. Donor ko Success Message dikhayein
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final Uint8List pdfBytes = await generateCertificate(donorData);
+          sendCertificateToBackend(pdfBytes, donorData).catchError((e) => print(e));
+          
+          setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Success! Certificate has been sent to your Email."),
+            content: Text("Success! Registration Done. Check Email."),
             backgroundColor: Colors.green,
           ),
         );
-        
-        // Yahan Printing.layoutPdf() wali line nahi hai, isliye print nahi khulega.
-      }
+
+         _formKey.currentState!.reset(); // Form validators reset karein
+        nameCtrl.clear();
+        fatherCtrl.clear();
+        emailCtrl.clear();
+        mobileCtrl.clear();
+        dobCtrl.clear();
+        donationDateCtrl.clear();
+        donationCountCtrl.clear();
+        locCtrl.clear();
+        gender = null;
+        bGroup = null;
+        }
     } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
       setState(() => isLoading = false);
+      print("Error: $e");
     }
   }
 }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
