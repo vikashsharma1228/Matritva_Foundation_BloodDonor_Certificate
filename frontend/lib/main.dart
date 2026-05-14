@@ -60,6 +60,7 @@ class _BloodAppState extends State<BloodApp> {
     super.initState();
     preloadAssets(); // App start hote hi load karo
   }
+
   void _clearAllControllers() {
     nameCtrl.clear();
     fatherCtrl.clear();
@@ -780,63 +781,63 @@ class _BloodAppState extends State<BloodApp> {
   }
 
   Future<void> saveAndPrint() async {
-  if (_formKey.currentState!.validate()) {
-    // 1. Loader ko 1 second ke liye dikhayein taaki user ko lage "Process" shuru hua
-    setState(() => isLoading = true);
+    if (_formKey.currentState!.validate()) {
+      // 1. Loader ko 1 second ke liye dikhayein taaki user ko lage "Process" shuru hua
+      setState(() => isLoading = true);
 
-    final String donorName = nameCtrl.text;
-    final Map<String, dynamic> donorData = {
-      "fullName": donorName,
-      "fatherName": fatherCtrl.text,
-      "gender": gender,
-      "dob": dobCtrl.text,
-      "email": emailCtrl.text,
-      "mobile": mobileCtrl.text,
-      "bloodGroup": bGroup,
-      "location": locCtrl.text,
-      "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
-      "donationDate": donationDateCtrl.text,
-      "certificateId": "MF-BD-${DateTime.now().millisecondsSinceEpoch}",
-    };
-    _clearAllControllers();
-    // --- STEP 2: TURANT UI RESET (BINA WAIT KIYE) ---
-    setState(() => isLoading = false);
+      final String donorName = nameCtrl.text;
+      final Map<String, dynamic> donorData = {
+        "fullName": donorName,
+        "fatherName": fatherCtrl.text,
+        "gender": gender,
+        "dob": dobCtrl.text,
+        "email": emailCtrl.text,
+        "mobile": mobileCtrl.text,
+        "bloodGroup": bGroup,
+        "location": locCtrl.text,
+        "donationCount": int.tryParse(donationCountCtrl.text) ?? 1,
+        "donationDate": donationDateCtrl.text,
+        "certificateId": "MF-BD-${DateTime.now().millisecondsSinceEpoch}",
+      };
+      _clearAllControllers();
+      // --- STEP 2: TURANT UI RESET (BINA WAIT KIYE) ---
+      setState(() => isLoading = false);
 
-    // Success SnackBar turant dikhayein
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Processing Registration... Check Email shortly."),
-        backgroundColor: Colors.blueAccent, // Blue for "In Progress"
-        duration: Duration(seconds: 2),
-      ),
-    );
+      // Success SnackBar turant dikhayein
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Processing Registration... Check Email shortly."),
+          backgroundColor: Colors.blueAccent, // Blue for "In Progress"
+          duration: Duration(seconds: 2),
+        ),
+      );
 
-    // --- STEP 3: SAARA KAAM BACKGROUND MEIN DAAL DEIN ---
-    // Isme 'await' nahi hai, toh UI bilkul nahi rukega
-    _startBackgroundWorkflow(donorData);
-  }
-}
-
-// Ye naya function backend aur email dono peechhe se sambhal lega
-void _startBackgroundWorkflow(Map<String, dynamic> data) async {
-  try {
-    // A. Pehle Database mein save karein
-    final response = await http.post(
-      Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(data),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      // B. Save ho gaya, ab PDF aur Email ka kaam shuru karein
-      final Uint8List pdfBytes = await generateCertificate(data);
-      await sendCertificateToBackend(pdfBytes, data);
-      debugPrint("Background Success: Data Saved and Email Sent!");
+      // --- STEP 3: SAARA KAAM BACKGROUND MEIN DAAL DEIN ---
+      // Isme 'await' nahi hai, toh UI bilkul nahi rukega
+      _startBackgroundWorkflow(donorData);
     }
-  } catch (e) {
-    debugPrint("Background Error: $e");
   }
-}
+
+  // Ye naya function backend aur email dono peechhe se sambhal lega
+  void _startBackgroundWorkflow(Map<String, dynamic> data) async {
+    try {
+      // A. Pehle Database mein save karein
+      final response = await http.post(
+        Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // B. Save ho gaya, ab PDF aur Email ka kaam shuru karein
+        final Uint8List pdfBytes = await generateCertificate(data);
+        await sendCertificateToBackend(pdfBytes, data);
+        debugPrint("Background Success: Data Saved and Email Sent!");
+      }
+    } catch (e) {
+      debugPrint("Background Error: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -917,7 +918,7 @@ void _startBackgroundWorkflow(Map<String, dynamic> data) async {
                     items: ["Male", "Female", "Other"]
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
-                    onChanged: (v) => gender = v,
+                    onChanged: (v) => setState(() => gender = v),
                     validator: (v) => v == null ? "Required" : null,
                   ),
 
@@ -933,7 +934,7 @@ void _startBackgroundWorkflow(Map<String, dynamic> data) async {
                     items: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
-                    onChanged: (v) => bGroup = v,
+                    onChanged: (v) => setState(() => bGroup = v),
                     validator: (v) => v == null ? "Required" : null,
                   ),
 
@@ -986,7 +987,19 @@ void _startBackgroundWorkflow(Map<String, dynamic> data) async {
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.email),
                     ),
-                    validator: (v) => v!.isEmpty ? "Required" : null,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) {
+                        return "Required";
+                      }
+                      // Email regex pattern
+                      final emailRegex = RegExp(
+                        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+                      );
+                      if (!emailRegex.hasMatch(v)) {
+                        return "Enter a valid email (e.g., name@gmail.com)";
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 15),
 
