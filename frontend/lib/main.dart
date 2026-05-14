@@ -329,7 +329,7 @@ class _BloodAppState extends State<BloodApp> {
                                       ),
                                       _sidebarItem(
                                         "DONATION DATE",
-                                        data['date'],
+                                        data['donationDate'] ?? data['date'] ?? "",
                                         PdfColors.black,
                                         const pw.IconData(0xe916),
                                         iconFont,
