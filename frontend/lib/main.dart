@@ -60,6 +60,20 @@ class _BloodAppState extends State<BloodApp> {
     super.initState();
     preloadAssets(); // App start hote hi load karo
   }
+  void _clearAllControllers() {
+    nameCtrl.clear();
+    fatherCtrl.clear();
+    emailCtrl.clear();
+    mobileCtrl.clear();
+    dobCtrl.clear();
+    donationDateCtrl.clear();
+    donationCountCtrl.clear();
+    locCtrl.clear();
+    setState(() {
+      gender = null;
+      bGroup = null;
+    });
+  }
 
   Future<void> preloadAssets() async {
     // Saare assets ko ek saath load karein
@@ -767,11 +781,12 @@ class _BloodAppState extends State<BloodApp> {
 
   Future<void> saveAndPrint() async {
   if (_formKey.currentState!.validate()) {
-    // 1. Loader aur Donor Data taiyar karein
+    // 1. Loader ko 1 second ke liye dikhayein taaki user ko lage "Process" shuru hua
     setState(() => isLoading = true);
 
+    final String donorName = nameCtrl.text;
     final Map<String, dynamic> donorData = {
-      "fullName": nameCtrl.text,
+      "fullName": donorName,
       "fatherName": fatherCtrl.text,
       "gender": gender,
       "dob": dobCtrl.text,
@@ -783,31 +798,29 @@ class _BloodAppState extends State<BloodApp> {
       "donationDate": donationDateCtrl.text,
       "certificateId": "MF-BD-${DateTime.now().millisecondsSinceEpoch}",
     };
+    _clearAllControllers();
+    // --- STEP 2: TURANT UI RESET (BINA WAIT KIYE) ---
+    setState(() => isLoading = false);
 
-    // --- MAGIC STEP: Bina await ke seedha background process chalu karein ---
-    _handleDoubleBackgroundProcess(donorData);
-
-    // --- STEP 2: TURANT UI RESET (Bina backend response ka intezar kiye) ---
-    setState(() {
-      isLoading = false; // Loader turant band
-      _formKey.currentState!.reset();
-      _clearAllControllers(); // Apne saare clear() calls yahan daal dein
-    });
-
+    // Success SnackBar turant dikhayein
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Processing Registration... Check Email in a moment."),
-        backgroundColor: Colors.blueAccent,
+        content: Text("Processing Registration... Check Email shortly."),
+        backgroundColor: Colors.blueAccent, // Blue for "In Progress"
         duration: Duration(seconds: 2),
       ),
     );
+
+    // --- STEP 3: SAARA KAAM BACKGROUND MEIN DAAL DEIN ---
+    // Isme 'await' nahi hai, toh UI bilkul nahi rukega
+    _startBackgroundWorkflow(donorData);
   }
 }
 
-// Ye function backend call aur email dono background mein karega
-void _handleDoubleBackgroundProcess(Map<String, dynamic> data) async {
+// Ye naya function backend aur email dono peechhe se sambhal lega
+void _startBackgroundWorkflow(Map<String, dynamic> data) async {
   try {
-    // 1. Database mein save karein (Peechhe se)
+    // A. Pehle Database mein save karein
     final response = await http.post(
       Uri.parse('https://matritva-backend.onrender.com/api/donors/register'),
       headers: {"Content-Type": "application/json"},
@@ -815,15 +828,16 @@ void _handleDoubleBackgroundProcess(Map<String, dynamic> data) async {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      // 2. Agar save ho gaya, toh PDF generate karke mail bhejein
+      // B. Save ho gaya, ab PDF aur Email ka kaam shuru karein
       final Uint8List pdfBytes = await generateCertificate(data);
       await sendCertificateToBackend(pdfBytes, data);
-      debugPrint("Background: Success for ${data['fullName']}");
+      debugPrint("Background Success: Data Saved and Email Sent!");
     }
   } catch (e) {
-    debugPrint("Silent Error: $e");
+    debugPrint("Background Error: $e");
   }
 }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
