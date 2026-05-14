@@ -991,12 +991,9 @@ class _BloodAppState extends State<BloodApp> {
                       if (v == null || v.isEmpty) {
                         return "Required";
                       }
-                      // Email regex pattern
-                      final emailRegex = RegExp(
-                        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-                      );
+                     final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+$");
                       if (!emailRegex.hasMatch(v)) {
-                        return "Enter a valid email (e.g., name@gmail.com)";
+                        return "Enter a valid email (e.g., name@oksbi)";
                       }
                       return null;
                     },
